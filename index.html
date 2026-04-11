@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Monthly Account Balances</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+            font-size: 20px;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            padding-top: 80px;
+        }
+        
+        /* Header with Settings Button */
+        .app-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .app-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+            margin: 0;
+        }
+        
+        .settings-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.1s;
+        }
+        
+        .settings-btn:active {
+            transform: scale(0.95);
+        }
+        
+        /* Progress Ring for Long Press */
+        .progress-ring {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 50px;
+            height: 50px;
+            transform: rotate(-90deg);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .progress-ring.active {
+            opacity: 1;
+        }
+        
+        .progress-ring-circle {
+            fill: none;
+            stroke: #007AFF;
+            stroke-width: 4;
+            stroke-dasharray: 141.37;
+            stroke-dashoffset: 141.37;
+            transition: stroke-dashoffset 0.1s linear;
+        }
+        
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        h2 {
+            font-size: 26px;
+            margin: 0 0 20px 0;
+            color: #555;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        /* Month Selector */
+        .month-selector {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .month-input {
+            flex: 1;
+            padding: 20px;
+            font-size: 24px;
+            border: 3px solid #ddd;
+            border-radius: 15px;
+            background: white;
+            font-weight: 600;
+        }
+        
+        .prev-month, .next-month {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            border: 3px solid #007AFF;
+            background: white;
+            color: #007AFF;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .prev-month:active, .next-month:active {
+            background: #007AFF;
+            color: white;
+        }
+        
+        /* Balance Inputs */
+        .balance-item {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 15px;
+            border-left: 6px solid #007AFF;
+        }
+        
+        .account-label {
+            font-size: 22px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .balance-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .currency-symbol {
+            font-size: 32px;
+            font-weight: 700;
+            color: #666;
+        }
+        
+        .balance-input {
+            flex: 1;
+            padding: 15px;
+            font-size: 32px;
+            font-weight: 700;
+            border: 3px solid #ddd;
+            border-radius: 12px;
+            text-align: right;
+            font-family: inherit;
+        }
+        
+        .balance-input:focus {
+            outline: none;
+            border-color: #007AFF;
+            background: #f0f8ff;
+        }
+        
+        /* Running Total */
+        .total-section {
+            background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .total-label {
+            font-size: 22px;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+        
+        .total-amount {
+            font-size: 52px;
+            font-weight: 800;
+        }
+        
+        /* Action Buttons */
+        .btn {
+            width: 100%;
+            padding: 25px;
+            font-size: 26px;
+            font-weight: 700;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            margin-bottom: 15px;
+        }
+        
+        .btn:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-save {
+            background: #34C759;
+            color: white;
+            box-shadow: 0 4px 15px rgba(52, 199, 89, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #8E8E93;
+            color: white;
+        }
+        
+        .btn-outline {
+            background: white;
+            color: #007AFF;
+            border: 3px solid #007AFF;
+        }
+        
+        /* History Section */
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .toggle-history {
+            font-size: 18px;
+            color: #007AFF;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+        }
+        
+        .history-list {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .history-list.expanded {
+            max-height: 2000px;
+        }
+        
+        .history-item {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 6px solid #34C759;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .history-month {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .history-total {
+            font-size: 28px;
+            font-weight: 700;
+            color: #007AFF;
+        }
+        
+        .history-details {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #eee;
+            display: none;
+        }
+        
+        .history-details.show {
+            display: block;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 18px;
+            padding: 6px 0;
+            color: #666;
+        }
+        
+        .expand-btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            font-size: 16px;
+            color: #007AFF;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        
+        /* Settings Panel */
+        .settings-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 200;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        
+        .settings-panel.active {
+            display: flex;
+        }
+        
+        .settings-content {
+            background: white;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            border-radius: 30px 30px 0 0;
+            padding: 30px;
+            overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .settings-panel.active .settings-content {
+            transform: translateY(0);
+        }
+        
+        .settings-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .close-settings {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        /* Account Management in Settings */
+        .account-edit-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        
+        .account-edit-item input {
+            flex: 1;
+            padding: 15px;
+            font-size: 18px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+        }
+        
+        .delete-account-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: #FF3B30;
+            color: white;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        
+        .add-account-form {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+        }
+        
+        /* Data Actions */
+        .data-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .data-actions .btn {
+            font-size: 18px;
+            padding: 18px;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+        
+        .file-label {
+            display: block;
+            width: 100%;
+            padding: 18px;
+            font-size: 18px;
+            font-weight: 700;
+            background: #FF9500;
+            color: white;
+            border-radius: 15px;
+            text-align: center;
+            cursor: pointer;
+        }
+        
+        /* Celebration Animation */
+        .celebration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 300;
+            display: none;
+        }
+        
+        .celebration.active {
+            display: block;
+        }
+        
+        .confetti {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            animation: confetti-fall 1s ease-out forwards;
+        }
+        
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100px) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+        
+        .success-burst {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: #34C759;
+            animation: burst 0.6s ease-out forwards;
+        }
+        
+        @keyframes burst {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 1;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(2);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(3);
+                opacity: 0;
+            }
+        }
+        
+        .success-text {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: 800;
+            color: #34C759;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            animation: success-pop 0.5s ease-out forwards;
+            opacity: 0;
+        }
+        
+        @keyframes success-pop {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.2);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+        
+        /* Messages */
+        .message {
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 20px 30px;
+            border-radius: 15px;
+            font-size: 20px;
+            font-weight: 600;
+            z-index: 400;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            animation: slide-down 0.3s ease;
+        }
+        
+        @keyframes slide-down {
+            from {
+                transform: translateX(-50%) translateY(-100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .message.success {
+            background: #34C759;
+            color: white;
+        }
+        
+        .message.error {
+            background: #FF3B30;
+            color: white;
+        }
+        
+        /* Empty States */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 22px;
+        }
+        
+        /* Info Box */
+        .info-box {
+            background: #e7f3ff;
+            border-left: 6px solid #007AFF;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: #333;
+        }
+        
+        .warning-box {
+            background: #fff3e0;
+            border-left-color: #FF9500;
+        }
+        
+        /* Utility */
+        .hidden {
+            display: none !important;
+        }
+        
+        .section-divider {
+            height: 2px;
+            background: #eee;
+            margin: 30px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Celebration Overlay -->
+    <div class="celebration" id="celebration">
+        <div class="success-burst"></div>
+        <div class="success-text">✓ Saved!</div>
+    </div>
+    
+    <!-- Message Area -->
+    <div id="messageArea"></div>
+
+    <!-- App Header -->
+    <header class="app-header">
+        <h1 class="app-title">💰 My Accounts</h1>
+        <button class="settings-btn" id="settingsBtn" aria-label="Settings">
+            ⚙️
+            <svg class="progress-ring" id="progressRing">
+                <circle class="progress-ring-circle" cx="25" cy="25" r="22.5"/>
+            </svg>
+        </button>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Entry Card -->
+        <div class="card">
+            <h2>Enter Balances</h2>
+            
+            <div class="month-selector">
+                <button class="prev-month" onclick="changeMonth(-1)">◀</button>
+                <input type="month" class="month-input" id="entryMonth">
+                <button class="next-month" onclick="changeMonth(1)">▶</button>
+            </div>
+            
+            <div id="balanceForm">
+                <div id="balanceInputs"></div>
+                
+                <div class="total-section">
+                    <div class="total-label">Total Balance</div>
+                    <div class="total-amount" id="runningTotal">$0.00</div>
+                </div>
+                
+                <button class="btn btn-save" onclick="saveMonth()">
+                    💾 Save This Month
+                </button>
+            </div>
+        </div>
+
+        <!-- History Card -->
+        <div class="card">
+            <div class="history-header">
+                <h2 style="margin:0; border:none; padding:0;">History</h2>
+                <button class="toggle-history" onclick="toggleHistory()">
+                    <span id="historyToggleText">Show ▼</span>
+                </button>
+            </div>
+            
+            <div class="history-list" id="historyList">
+                <div class="empty-state">No entries yet</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-content">
+            <button class="close-settings" onclick="closeSettings()">✕</button>
+            
+            <div class="settings-title">⚙️ Settings</div>
+            
+            <!-- Accounts Section -->
+            <div class="card" style="margin-bottom:20px;">
+                <h2>Manage Accounts</h2>
+                <div id="accountsEditList"></div>
+                
+                <div class="add-account-form">
+                    <h3 style="font-size:20px; margin-bottom:15px;">Add New Account</h3>
+                    <div class="input-group" style="margin-bottom:15px;">
+                        <input type="text" id="newBankName" placeholder="Bank Name (e.g., Chase)" style="width:100%; padding:15px; font-size:18px; border:2px solid #ddd; border-radius:10px; margin-bottom:10px;">
+                        <input type="text" id="newAccountName" placeholder="Account Name (e.g., Savings)" style="width:100%; padding:15px; font-size:18px; border:2px solid #ddd; border-radius:10px;">
+                    </div>
+                    <button class="btn btn-primary" onclick="addAccount()" style="padding:18px; font-size:20px; background:#007AFF; color:white;">➕ Add Account</button>
+                </div>
+            </div>
+            
+            <!-- Data Management -->
+            <div class="card">
+                <h2>Backup & Restore</h2>
+                
+                <div class="info-box warning-box">
+                    <strong>Important:</strong> Regularly save your data to a file. This creates a backup you can restore if needed.
+                </div>
+                
+                <button class="btn btn-success" onclick="exportData()" style="background:#34C759; color:white; margin-bottom:10px;">
+                    📤 Save to File
+                </button>
+                
+                <div class="file-input-wrapper" style="margin-bottom:15px;">
+                    <input type="file" id="importFile" accept=".json" onchange="importData(this)">
+                    <label for="importFile" class="file-label">
+                        📥 Load from File
+                    </label>
+                </div>
+                
+                <div class="data-actions">
+                    <button class="btn btn-secondary" onclick="shareData()">
+                        📱 Share
+                    </button>
+                    <button class="btn btn-danger" onclick="confirmClearData()" style="background:#FF3B30; color:white;">
+                        🗑️ Clear All
+                    </button>
+                </div>
+            </div>
+            
+            <div style="height:40px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Data Storage
+        let accounts = JSON.parse(localStorage.getItem('bankAccounts')) || [];
+        let history = JSON.parse(localStorage.getItem('monthHistory')) || [];
+        
+        // Long Press Variables
+        let pressTimer = null;
+        let isLongPress = false;
+        const LONG_PRESS_DURATION = 3000; // 3 seconds
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            setupSettingsButton();
+            setDefaultMonth();
+            renderBalanceInputs();
+            renderHistory();
+            loadMonthData();
+        });
+        
+        // Settings Button Long Press Handler
+        function setupSettingsButton() {
+            const btn = document.getElementById('settingsBtn');
+            const ring = document.getElementById('progressRing');
+            const circle = ring.querySelector('circle');
+            const circumference = 2 * Math.PI * 22.5; // r=22.5
+            
+            circle.style.strokeDasharray = circumference;
+            circle.style.strokeDashoffset = circumference;
+            
+            const startPress = (e) => {
+                if (e.type === 'click' && e.button !== 0) return;
+                e.preventDefault();
+                
+                isLongPress = false;
+                ring.classList.add('active');
+                
+                // Animate progress
+                let startTime = Date.now();
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / LONG_PRESS_DURATION, 1);
+                    const offset = circumference - (progress * circumference);
+                    circle.style.strokeDashoffset = offset;
+                    
+                    if (progress < 1 && pressTimer) {
+                        requestAnimationFrame(animate);
+                    }
+                };
+                requestAnimationFrame(animate);
+                
+                pressTimer = setTimeout(() => {
+                    isLongPress = true;
+                    ring.classList.remove('active');
+                    circle.style.strokeDashoffset = circumference;
+                    openSettings();
+                }, LONG_PRESS_DURATION);
+            };
+            
+            const cancelPress = () => {
+                if (pressTimer) {
+                    clearTimeout(pressTimer);
+                    pressTimer = null;
+                }
+                ring.classList.remove('active');
+                circle.style.strokeDashoffset = circumference;
+            };
+            
+            // Touch events
+            btn.addEventListener('touchstart', startPress, {passive: false});
+            btn.addEventListener('touchend', cancelPress);
+            btn.addEventListener('touchcancel', cancelPress);
+            
+            // Mouse events
+            btn.addEventListener('mousedown', startPress);
+            btn.addEventListener('mouseup', cancelPress);
+            btn.addEventListener('mouseleave', cancelPress);
+            
+            // Prevent context menu
+            btn.addEventListener('contextmenu', e => e.preventDefault());
+        }
+        
+        // Month Handling
+        function setDefaultMonth() {
+            const today = new Date();
+            // Default to last month
+            today.setMonth(today.getMonth() - 1);
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            document.getElementById('entryMonth').value = `${year}-${month}`;
+            
+            document.getElementById('entryMonth').addEventListener('change', loadMonthData);
+        }
+        
+        function changeMonth(delta) {
+            const input = document.getElementById('entryMonth');
+            const current = new Date(input.value + '-01');
+            current.setMonth(current.getMonth() + delta);
+            
+            const year = current.getFullYear();
+            const month = String(current.getMonth() + 1).padStart(2, '0');
+            input.value = `${year}-${month}`;
+            
+            loadMonthData();
+        }
+        
+        // Balance Entry
+        function renderBalanceInputs() {
+            const container = document.getElementById('balanceInputs');
+            
+            if (accounts.length === 0) {
+                container.innerHTML = '<div class="empty-state" style="padding:20px;">No accounts set up.<br>Hold ⚙️ for 3 seconds to add accounts.</div>';
+                return;
+            }
+            
+            container.innerHTML = accounts.map(acc => `
+                <div class="balance-item">
+                    <div class="account-label">${acc.bank} - ${acc.name}</div>
+                    <div class="balance-input-wrapper">
+                        <span class="currency-symbol">$</span>
+                        <input type="number" 
+                               class="balance-input" 
+                               data-id="${acc.id}" 
+                               placeholder="0.00" 
+                               step="0.01"
+                               oninput="updateRunningTotal()">
+                    </div>
+                </div>
+            `).join('');
+            
+            updateRunningTotal();
+        }
+        
+        function updateRunningTotal() {
+            const inputs = document.querySelectorAll('.balance-input');
+            let total = 0;
+            
+            inputs.forEach(input => {
+                total += parseFloat(input.value) || 0;
+            });
+            
+            document.getElementById('runningTotal').textContent = formatCurrency(total);
+        }
+        
+        function loadMonthData() {
+            const month = document.getElementById('entryMonth').value;
+            const entry = history.find(h => h.month === month);
+            
+            // Clear inputs
+            document.querySelectorAll('.balance-input').forEach(input => {
+                input.value = '';
+            });
+            
+            // Fill existing data
+            if (entry) {
+                entry.balances.forEach(b => {
+                    const input = document.querySelector(`input[data-id="${b.accountId}"]`);
+                    if (input) input.value = b.amount;
+                });
+            }
+            
+            updateRunningTotal();
+        }
+        
+        // Save with Celebration
+        function saveMonth() {
+            const month = document.getElementById('entryMonth').value;
+            if (!month) {
+                showMessage('Please select a month', 'error');
+                return;
+            }
+            
+            const balances = [];
+            let total = 0;
+            
+            document.querySelectorAll('.balance-input').forEach(input => {
+                const amount = parseFloat(input.value) || 0;
+                const accountId = parseInt(input.dataset.id);
+                const account = accounts.find(a => a.id === accountId);
+                
+                if (account) {
+                    balances.push({
+                        accountId: accountId,
+                        bank: account.bank,
+                        name: account.name,
+                        amount: amount
+                    });
+                    total += amount;
+                }
+            });
+            
+            // Remove existing entry for this month
+            history = history.filter(h => h.month !== month);
+            
+            // Add new entry
+            history.push({
+                month: month,
+                total: total,
+                balances: balances,
+                saved: new Date().toISOString()
+            });
+            
+            // Sort descending
+            history.sort((a, b) => b.month.localeCompare(a.month));
+            
+            localStorage.setItem('monthHistory', JSON.stringify(history));
+            
+            // Trigger celebration
+            triggerCelebration();
+            
+            // Update history view
+            renderHistory();
+            
+            // Auto-scroll to history
+            setTimeout(() => {
+                const historyCard = document.querySelector('.history-list');
+                if (!historyCard.classList.contains('expanded')) {
+                    toggleHistory();
+                }
+                historyCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 800);
+        }
+        
+        function triggerCelebration() {
+            const cel = document.getElementById('celebration');
+            cel.classList.add('active');
+            
+            // Create confetti
+            const colors = ['#007AFF', '#34C759', '#FF9500', '#FF3B30', '#5856D6', '#FF2D55'];
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDelay = Math.random() * 0.5 + 's';
+                confetti.style.animationDuration = (1 + Math.random()) + 's';
+                cel.appendChild(confetti);
+            }
+            
+            setTimeout(() => {
+                cel.classList.remove('active');
+                cel.innerHTML = '<div class="success-burst"></div><div class="success-text">✓ Saved!</div>';
+            }, 1500);
+        }
+        
+        // History Display
+        function toggleHistory() {
+            const list = document.getElementById('historyList');
+            const text = document.getElementById('historyToggleText');
+            
+            list.classList.toggle('expanded');
+            text.textContent = list.classList.contains('expanded') ? 'Hide ▲' : 'Show ▼';
+        }
+        
+        function toggleDetails(month) {
+            const details = document.getElementById(`details-${month}`);
+            details.classList.toggle('show');
+        }
+        
+        function renderHistory() {
+            const container = document.getElementById('historyList');
+            
+            if (history.length === 0) {
+                container.innerHTML = '<div class="empty-state">No entries yet</div>';
+                return;
+            }
+            
+            container.innerHTML = history.map(entry => {
+                const date = new Date(entry.month + '-01');
+                const monthName = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                
+                const detailsHtml = entry.balances.map(b => `
+                    <div class="detail-row">
+                        <span>${b.bank} ${b.name}</span>
+                        <span>${formatCurrency(b.amount)}</span>
+                    </div>
+                `).join('');
+                
+                return `
+                    <div class="history-item">
+                        <div class="history-month">${monthName}</div>
+                        <div class="history-total">${formatCurrency(entry.total)}</div>
+                        <button class="expand-btn" onclick="toggleDetails('${entry.month}')">
+                            View Details
+                        </button>
+                        <div class="history-details" id="details-${entry.month}">
+                            ${detailsHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Settings Panel
+        function openSettings() {
+            document.getElementById('settingsPanel').classList.add('active');
+            renderAccountsEdit();
+        }
+        
+        function closeSettings() {
+            document.getElementById('settingsPanel').classList.remove('active');
+        }
+        
+        // Account Management
+        function renderAccountsEdit() {
+            const container = document.getElementById('accountsEditList');
+            
+            if (accounts.length === 0) {
+                container.innerHTML = '<div class="empty-state" style="padding:20px; font-size:18px;">No accounts yet</div>';
+                return;
+            }
+            
+            container.innerHTML = accounts.map(acc => `
+                <div class="account-edit-item" data-id="${acc.id}">
+                    <input type="text" value="${acc.bank}" onchange="updateAccount(${acc.id}, 'bank', this.value)" placeholder="Bank">
+                    <input type="text" value="${acc.name}" onchange="updateAccount(${acc.id}, 'name', this.value)" placeholder="Account">
+                    <button class="delete-account-btn" onclick="deleteAccount(${acc.id})">🗑️</button>
+                </div>
+            `).join('');
+        }
+        
+        function updateAccount(id, field, value) {
+            const account = accounts.find(a => a.id === id);
+            if (account) {
+                account[field] = value.trim();
+                saveAccounts();
+                renderBalanceInputs(); // Update main screen
+            }
+        }
+        
+        function addAccount() {
+            const bank = document.getElementById('newBankName').value.trim();
+            const name = document.getElementById('newAccountName').value.trim();
+            
+            if (!bank) {
+                showMessage('Please enter a bank name', 'error');
+                return;
+            }
+            
+            accounts.push({
+                id: Date.now(),
+                bank: bank,
+                name: name || 'Account',
+                created: new Date().toISOString()
+            });
+            
+            saveAccounts();
+            renderAccountsEdit();
+            renderBalanceInputs();
+            
+            document.getElementById('newBankName').value = '';
+            document.getElementById('newAccountName').value = '';
+            
+            showMessage('Account added!', 'success');
+        }
+        
+        function deleteAccount(id) {
+            if (!confirm('Delete this account?')) return;
+            
+            accounts = accounts.filter(a => a.id !== id);
+            saveAccounts();
+            renderAccountsEdit();
+            renderBalanceInputs();
+        }
+        
+        function saveAccounts() {
+            localStorage.setItem('bankAccounts', JSON.stringify(accounts));
+        }
+        
+        // Data Operations
+        function exportData() {
+            const data = {
+                version: '1.0',
+                exportDate: new Date().toISOString(),
+                accounts: accounts,
+                history: history
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `account-backup-${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showMessage('File saved!', 'success');
+        }
+        
+        function importData(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (!data.accounts || !data.history) {
+                        throw new Error('Invalid file format');
+                    }
+                    
+                    if (!confirm(`Restore backup from ${new Date(data.exportDate).toLocaleDateString()}?\nThis will replace all current data.`)) {
+                        return;
+                    }
+                    
+                    accounts = data.accounts;
+                    history = data.history;
+                    
+                    saveAccounts();
+                    localStorage.setItem('monthHistory', JSON.stringify(history));
+                    
+                    renderAccountsEdit();
+                    renderBalanceInputs();
+                    renderHistory();
+                    
+                    showMessage('Data restored!', 'success');
+                } catch (err) {
+                    showMessage('Error: ' + err.message, 'error');
+                }
+            };
+            reader.readAsText(file);
+            input.value = '';
+        }
+        
+        function shareData() {
+            const data = JSON.stringify({
+                version: '1.0',
+                exportDate: new Date().toISOString(),
+                accounts: accounts,
+                history: history
+            });
+            
+            if (navigator.share) {
+                const file = new File([data], 'backup.json', {type: 'application/json'});
+                navigator.share({
+                    title: 'Account Backup',
+                    files: [file]
+                }).catch(() => {
+                    navigator.clipboard.writeText(data);
+                    showMessage('Copied to clipboard', 'success');
+                });
+            } else {
+                navigator.clipboard.writeText(data);
+                showMessage('Copied to clipboard', 'success');
+            }
+        }
+        
+        function confirmClearData() {
+            if (!confirm('WARNING: This will delete ALL data permanently. Make sure you have a backup file first. Continue?')) {
+                return;
+            }
+            
+            accounts = [];
+            history = [];
+            saveAccounts();
+            localStorage.setItem('monthHistory', JSON.stringify(history));
+            
+            renderAccountsEdit();
+            renderBalanceInputs();
+            renderHistory();
+            closeSettings();
+            
+            showMessage('All data cleared', 'success');
+        }
+        
+        // Utilities
+        function formatCurrency(num) {
+            return '$' + num.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+        }
+        
+        function showMessage(text, type) {
+            const area = document.getElementById('messageArea');
+            area.innerHTML = `<div class="message ${type}">${text}</div>`;
+            setTimeout(() => area.innerHTML = '', 3000);
+        }
+    </script>
+</body>
+</html>
