@@ -1,9 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+  }
+</script>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Mom's Marcus v2</title>
+<title>Mom's Marcus v3</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -286,7 +291,7 @@
 </head>
 <body>
 
-<header>💰 Mom's Marcus v2</header>
+<header>💰 Mom's Marcus v3</header>
 
 <!-- Month Selector -->
 <div class="month-bar">
@@ -591,4 +596,5 @@ function showToast(msg) {
 init();
 </script>
 </body>
-</html>
+ </html>
+ 
