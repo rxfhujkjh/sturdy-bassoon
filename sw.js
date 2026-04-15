@@ -1,4 +1,4 @@
-const CACHE = 'momsmartin-v3'; // ← bump this string every time you deploy
+const CACHE = 'momsmartin-v4'; // ← bump this string every time you deploy
 
 self.addEventListener('install', e => {
   self.skipWaiting();
