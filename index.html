@@ -502,7 +502,7 @@
 
 <script>
 // ── Storage ────────────────────────────────────────────────────────────────
-const STORE_KEY = 'momsmartin_v3';
+const STORE_KEY = 'momsmartin';
 
 function defaultStore() {
   return { accounts: ['Checking', 'Savings', 'Marcus'], history: {} };
@@ -522,6 +522,18 @@ function persist() {
 
 let store = loadStore();
 
+// One-time migration from v2
+(function migrateOld() {
+  if (localStorage.getItem('momsmartin')) return;
+  try {
+    const old = localStorage.getItem('momsmartin_v2');
+    if (old) {
+      localStorage.setItem('momsmartin', old);
+      store = JSON.parse(old); // load the migrated data into memory
+    }
+  } catch(e) {}
+})();
+  
 // ── Month/Year helpers ─────────────────────────────────────────────────────
 const MONTHS = ['January','February','March','April','May','June',
                 'July','August','September','October','November','December'];
