@@ -1,14 +1,25 @@
+
 <!DOCTYPE html>
 <html lang="en">
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js');
-  }
-</script>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Mom's Marcus v3</title>
+<title>Mom's Marcus</title>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => {
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'activated') {
+              window.location.reload();
+            }
+          });
+        });
+      });
+  }
+</script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -19,209 +30,344 @@
     font-size: 18px;
   }
 
+  /* ── Top Bar ── */
   header {
     background: #1a1a2e;
     color: white;
-    padding: 16px;
-    text-align: center;
-    font-size: 22px;
-    font-weight: bold;
-    letter-spacing: 1px;
-  }
-
-  .month-bar {
+    padding: 14px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: #2c3e6b;
-    color: white;
-    padding: 10px 16px;
   }
 
-  .month-bar select {
-    background: #2c3e6b;
+  header .title {
+    font-size: 20px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+  }
+
+  header .header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  header button {
+    background: rgba(255,255,255,0.15);
     color: white;
-    border: 1px solid rgba(255,255,255,0.4);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  header button:active { background: rgba(255,255,255,0.3); }
+
+  /* ── New Month Form ── */
+  #new-month-panel {
+    display: none;
+    background: #2c3e6b;
+    padding: 14px 16px;
+  }
+
+  #new-month-panel.open { display: block; }
+
+  #new-month-panel .panel-header {
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  #new-month-panel .panel-header button {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.7);
+    font-size: 22px;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .new-month-selectors {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .new-month-selectors select {
+    flex: 1;
+    background: white;
+    color: #1a1a2e;
+    border: none;
     border-radius: 8px;
     font-size: 18px;
-    padding: 4px 8px;
-    -webkit-appearance: none;
-    text-align: center;
+    padding: 8px 10px;
   }
 
-  .month-bar .month-select { flex: 1; margin-right: 6px; }
-  .month-bar .year-select  { width: 90px; }
+  .new-acct-input {
+    background: white;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
 
-  .total-box {
+  .new-acct-input .acct-label {
+    font-size: 15px;
+    color: #555;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+
+  .new-acct-input input {
+    width: 100%;
+    font-size: 22px;
+    padding: 6px 8px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    color: #1a1a2e;
+  }
+
+  .new-acct-input input:focus {
+    border-color: #2c3e6b;
+    outline: none;
+  }
+
+  .new-acct-input input::-webkit-inner-spin-button,
+  .new-acct-input input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  #new-month-panel .save-btn {
+    width: 100%;
     background: #2ecc71;
     color: white;
-    text-align: center;
-    padding: 14px 16px;
-    font-size: 26px;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 18px;
     font-weight: bold;
+    cursor: pointer;
+    margin-top: 6px;
   }
 
-  .total-box .label { font-size: 14px; font-weight: normal; opacity: 0.85; }
-
-  .accounts {
+  /* ── Month Cards ── */
+  .cards {
     padding: 12px 16px;
     display: flex;
     flex-direction: column;
     gap: 10px;
   }
 
-  .account-card {
+  .month-card {
     background: white;
-    border-radius: 12px;
-    padding: 12px 14px;
+    border-radius: 14px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
   }
 
-  .account-card .acct-label {
-    font-size: 16px;
+  .month-card.latest {
+    box-shadow: 0 2px 10px rgba(44,62,107,0.18);
+    border: 2px solid #2c3e6b;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .card-header:active { background: #f5f5f5; }
+
+  .card-header .month-label {
+    font-size: 18px;
+    font-weight: bold;
+    color: #1a1a2e;
+  }
+
+  .card-header .month-total {
+    font-size: 22px;
+    font-weight: bold;
+    color: #2c3e6b;
+  }
+
+  .latest .card-header .month-total {
+    font-size: 26px;
+    color: #2ecc71;
+  }
+
+  .card-header .chevron {
+    font-size: 18px;
+    color: #999;
+    margin-left: 10px;
+    transition: transform 0.2s;
+  }
+
+  .card-header.expanded .chevron { transform: rotate(90deg); }
+
+  /* ── Card Detail ── */
+  .card-detail {
+    display: none;
+    padding: 0 16px 14px;
+    border-top: 1px solid #f0f0f0;
+  }
+
+  .card-detail.open { display: block; }
+
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f5f5f5;
+    font-size: 18px;
+  }
+
+  .detail-row:last-of-type { border-bottom: none; }
+
+  .detail-row .acct-name { color: #555; }
+  .detail-row .acct-val  { font-weight: bold; color: #1a1a2e; }
+  .detail-row .acct-val.empty { color: #bbb; font-weight: normal; }
+
+  /* Edit mode rows */
+  .edit-row {
+    padding: 8px 0;
+    border-bottom: 1px solid #f5f5f5;
+  }
+
+  .edit-row:last-of-type { border-bottom: none; }
+
+  .edit-row .acct-label {
+    font-size: 15px;
     color: #555;
-    margin-bottom: 6px;
     font-weight: 600;
+    margin-bottom: 4px;
   }
 
-  .account-card input[type="number"] {
+  .edit-row input {
     width: 100%;
     font-size: 22px;
-    padding: 8px 10px;
+    padding: 7px 10px;
     border: 2px solid #ddd;
     border-radius: 8px;
     color: #1a1a2e;
-    background: #fafafa;
-    -moz-appearance: textfield;
   }
 
-  .account-card input[type="number"]:focus {
+  .edit-row input:focus {
     border-color: #2c3e6b;
     outline: none;
-    background: white;
   }
 
-  .account-card input::-webkit-inner-spin-button,
-  .account-card input::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .edit-row input::-webkit-inner-spin-button,
+  .edit-row input::-webkit-outer-spin-button { -webkit-appearance: none; }
 
-  .btn-row {
+  .card-actions {
     display: flex;
     gap: 10px;
-    padding: 0 16px 12px;
+    margin-top: 12px;
   }
 
-  .btn {
-    flex: 1;
-    padding: 14px;
-    font-size: 17px;
-    font-weight: bold;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-  }
-
-  .btn-save   { background: #2c3e6b; color: white; }
-  .btn-clear  { background: #e0e0e0; color: #333; }
-
-  section.history {
-    padding: 0 16px 20px;
-  }
-
-  .history-toggle {
-    width: 100%;
-    background: white;
-    border: none;
-    border-radius: 12px;
-    padding: 14px;
-    font-size: 18px;
-    font-weight: bold;
+  .btn-edit {
+    background: none;
+    border: 2px solid #2c3e6b;
     color: #2c3e6b;
-    cursor: pointer;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-    text-align: left;
-  }
-
-  #history-list {
-    display: none;
-    margin-top: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  #history-list.hidden { display: none; }
-
-  .history-entry {
-    background: white;
-    border-radius: 10px;
-    padding: 12px 14px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    border-radius: 8px;
+    padding: 8px 18px;
     font-size: 16px;
-  }
-
-  .history-entry .h-month { font-weight: bold; color: #2c3e6b; margin-bottom: 4px; font-size: 17px; }
-  .history-entry .h-total { float: right; font-weight: bold; color: #2ecc71; font-size: 17px; }
-  .history-entry .h-detail { color: #666; font-size: 14px; margin-top: 4px; }
-
-  .manage-btn {
-    display: block;
-    margin: 0 16px 12px;
-    width: calc(100% - 32px);
-    background: white;
-    border: 2px dashed #2c3e6b;
-    border-radius: 12px;
-    padding: 12px;
-    font-size: 17px;
-    color: #2c3e6b;
     cursor: pointer;
-    text-align: center;
     font-weight: bold;
   }
 
-  /* Modal */
+  .btn-save-edit {
+    background: #2c3e6b;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-size: 16px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  .btn-cancel-edit {
+    background: #e0e0e0;
+    color: #333;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  .btn-delete {
+    background: none;
+    border: 2px solid #e74c3c;
+    color: #e74c3c;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-left: auto;
+  }
+
+  /* ── Settings Modal ── */
   .modal-bg {
     display: none;
     position: fixed; inset: 0;
     background: rgba(0,0,0,0.5);
     z-index: 100;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
   }
+
   .modal-bg.open { display: flex; }
 
   .modal {
     background: white;
-    border-radius: 16px;
-    padding: 20px;
-    width: calc(100% - 40px);
-    max-width: 400px;
-    max-height: 80vh;
+    border-radius: 20px 20px 0 0;
+    padding: 20px 20px 36px;
+    width: 100%;
+    max-height: 75vh;
     overflow-y: auto;
   }
 
-  .modal h2 { font-size: 20px; margin-bottom: 14px; color: #1a1a2e; }
+  .modal h2 {
+    font-size: 20px;
+    margin-bottom: 16px;
+    color: #1a1a2e;
+  }
 
   .modal-acct-row {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
   }
 
   .modal-acct-row input {
     flex: 1;
-    font-size: 17px;
-    padding: 8px 10px;
+    font-size: 18px;
+    padding: 9px 12px;
     border: 2px solid #ddd;
     border-radius: 8px;
   }
 
-  .modal-acct-row button {
+  .modal-acct-row input:focus {
+    border-color: #2c3e6b;
+    outline: none;
+  }
+
+  .modal-acct-row .del-btn {
     background: #e74c3c;
     color: white;
     border: none;
     border-radius: 8px;
-    width: 36px; height: 36px;
+    width: 38px; height: 38px;
     font-size: 20px;
     cursor: pointer;
     flex-shrink: 0;
@@ -229,48 +375,56 @@
 
   .modal-add-btn {
     width: 100%;
-    background: #2c3e6b;
-    color: white;
-    border: none;
-    border-radius: 10px;
-    padding: 12px;
-    font-size: 17px;
-    cursor: pointer;
-    margin-top: 6px;
-  }
-
-  .modal-done-btn {
-    width: 100%;
-    background: #2ecc71;
-    color: white;
-    border: none;
+    background: #f0f4f8;
+    color: #2c3e6b;
+    border: 2px dashed #2c3e6b;
     border-radius: 10px;
     padding: 12px;
     font-size: 17px;
     font-weight: bold;
     cursor: pointer;
-    margin-top: 10px;
+    margin-bottom: 10px;
   }
 
-  .backup-row {
+  .modal-divider {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 14px 0;
+  }
+
+  .modal-backup-row {
     display: flex;
     gap: 10px;
-    padding: 0 16px 16px;
+    margin-bottom: 10px;
   }
 
-  .backup-btn {
+  .modal-backup-btn {
     flex: 1;
-    background: white;
+    background: #f0f4f8;
     border: 2px solid #2c3e6b;
-    border-radius: 12px;
+    color: #2c3e6b;
+    border-radius: 10px;
     padding: 12px;
     font-size: 16px;
-    color: #2c3e6b;
     font-weight: bold;
     cursor: pointer;
     text-align: center;
   }
 
+  .modal-done-btn {
+    width: 100%;
+    background: #2c3e6b;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+
+  /* ── Toast ── */
   .toast {
     position: fixed;
     bottom: 30px;
@@ -285,79 +439,73 @@
     transition: opacity 0.3s;
     z-index: 200;
     white-space: nowrap;
+    pointer-events: none;
   }
+
   .toast.show { opacity: 1; }
+
+  .empty-state {
+    text-align: center;
+    color: #aaa;
+    padding: 40px 20px;
+    font-size: 17px;
+  }
 </style>
 </head>
 <body>
 
-<header>💰 Mom's Marcus v3</header>
+<!-- Top Bar -->
+<header>
+  <div class="title">💰 Mom's Marcus</div>
+  <div class="header-actions">
+    <button onclick="openSettings()">⚙️</button>
+    <button onclick="toggleNewMonth()">＋ New Month</button>
+  </div>
+</header>
 
-<!-- Month Selector -->
-<div class="month-bar">
-  <select class="month-select" id="selMonth" onchange="onMonthChange()">
-    <option value="0">January</option><option value="1">February</option>
-    <option value="2">March</option><option value="3">April</option>
-    <option value="4">May</option><option value="5">June</option>
-    <option value="6">July</option><option value="7">August</option>
-    <option value="8">September</option><option value="9">October</option>
-    <option value="10">November</option><option value="11">December</option>
-  </select>
-  <select class="year-select" id="selYear" onchange="onMonthChange()"></select>
+<!-- New Month Panel -->
+<div id="new-month-panel">
+  <div class="panel-header">
+    <span>Add New Month</span>
+    <button onclick="toggleNewMonth()">✕</button>
+  </div>
+  <div class="new-month-selectors">
+    <select id="newMonthSel"></select>
+    <select id="newYearSel"></select>
+  </div>
+  <div id="newMonthInputs"></div>
+  <button class="save-btn" onclick="saveNewMonth()">💾 Save</button>
 </div>
 
-<!-- Total -->
-<div class="total-box">
-  <div class="label">Total Balance</div>
-  <div id="totalDisplay">$0.00</div>
+<!-- Month Cards -->
+<div class="cards" id="cardsContainer">
+  <div class="empty-state">No entries yet.<br>Tap <strong>＋ New Month</strong> to begin.</div>
 </div>
 
-<!-- Account Inputs -->
-<div class="accounts" id="accountsContainer"></div>
-
-<!-- Save / Clear -->
-<div class="btn-row">
-  <button class="btn btn-save" onclick="saveMonth()">💾 Save This Month</button>
-  <button class="btn btn-clear" onclick="clearInputs()">✕ Clear</button>
-</div>
-
-<!-- Manage Accounts -->
-<button class="manage-btn" onclick="openModal()">⚙️ Manage Accounts</button>
-
-<!-- Backup -->
-<div class="backup-row">
-  <button class="backup-btn" onclick="saveToFile()">📤 Save to File</button>
-  <button class="backup-btn" onclick="loadFromFile()">📥 Load File</button>
-</div>
-
-<!-- History -->
-<section class="history">
-  <button class="history-toggle" onclick="toggleHistory(this)">📋 History ▼</button>
-  <div id="history-list" class="hidden"></div>
-</section>
-
-<!-- Manage Accounts Modal -->
+<!-- Settings Modal -->
 <div class="modal-bg" id="modalBg" onclick="maybeCloseModal(event)">
   <div class="modal">
-    <h2>⚙️ Manage Accounts</h2>
+    <h2>⚙️ Settings</h2>
     <div id="modalAcctList"></div>
     <button class="modal-add-btn" onclick="modalAddAccount()">➕ Add Account</button>
-    <button class="modal-done-btn" onclick="closeModal()">✓ Done</button>
+    <hr class="modal-divider">
+    <div class="modal-backup-row">
+      <button class="modal-backup-btn" onclick="saveToFile()">📤 Save to File</button>
+      <button class="modal-backup-btn" onclick="loadFromFile()">📥 Load File</button>
+    </div>
+    <button class="modal-done-btn" onclick="closeSettings()">✓ Done</button>
   </div>
 </div>
 
-<!-- Hidden file input -->
 <input type="file" id="fileInput" accept=".json" style="display:none" onchange="handleFileLoad(event)">
-
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
-// ── State ──────────────────────────────────────────────────────────────────
-const STORE_KEY = 'momsmartin_v2';
+// ── Storage ────────────────────────────────────────────────────────────────
+const STORE_KEY = 'momsmartin_v3';
 
-function defaultAccounts() {
-  return ['Checking', 'Savings', 'Marcus'];
+function defaultStore() {
+  return { accounts: ['Checking', 'Savings', 'Marcus'], history: {} };
 }
 
 function loadStore() {
@@ -365,198 +513,272 @@ function loadStore() {
     const raw = localStorage.getItem(STORE_KEY);
     if (raw) return JSON.parse(raw);
   } catch(e) {}
-  return { accounts: defaultAccounts(), history: {} };
+  return defaultStore();
 }
 
-function saveStore() {
+function persist() {
   localStorage.setItem(STORE_KEY, JSON.stringify(store));
 }
 
 let store = loadStore();
 
-// Current month key
-let curMonth = new Date().getMonth();
-let curYear  = new Date().getFullYear();
+// ── Month/Year helpers ─────────────────────────────────────────────────────
+const MONTHS = ['January','February','March','April','May','June',
+                'July','August','September','October','November','December'];
+
+function monthLabel(key) {
+  const [y, m] = key.split('-');
+  return `${MONTHS[parseInt(m)-1]} ${y}`;
+}
+
+function fmt(n) {
+  return (n || 0).toLocaleString('en-US', { style:'currency', currency:'USD' });
+}
+
+function entryTotal(entry) {
+  return (entry.balances || []).reduce((s, v) => s + (v || 0), 0);
+}
 
 // ── Init ───────────────────────────────────────────────────────────────────
 function init() {
-  // Populate year select (5 years back, 2 forward)
-  const ySel = document.getElementById('selYear');
-  const now = new Date().getFullYear();
-  for (let y = now - 5; y <= now + 2; y++) {
+  // Populate new-month selectors
+  const mSel = document.getElementById('newMonthSel');
+  const ySel = document.getElementById('newYearSel');
+  MONTHS.forEach((name, i) => {
+    const o = document.createElement('option');
+    o.value = i; o.textContent = name;
+    mSel.appendChild(o);
+  });
+  const now = new Date();
+  mSel.value = now.getMonth();
+  const thisYear = now.getFullYear();
+  for (let y = thisYear - 5; y <= thisYear + 1; y++) {
     const o = document.createElement('option');
     o.value = y; o.textContent = y;
     ySel.appendChild(o);
   }
-  document.getElementById('selMonth').value = curMonth;
-  document.getElementById('selYear').value  = curYear;
+  ySel.value = thisYear;
 
-  renderAccounts();
-  loadCurrentMonthData();
-  renderHistory();
+  renderNewMonthInputs();
+  renderCards();
 }
 
-// ── Month change ───────────────────────────────────────────────────────────
-function onMonthChange() {
-  curMonth = parseInt(document.getElementById('selMonth').value);
-  curYear  = parseInt(document.getElementById('selYear').value);
-  loadCurrentMonthData();
+// ── New Month Panel ────────────────────────────────────────────────────────
+function toggleNewMonth() {
+  const panel = document.getElementById('new-month-panel');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) renderNewMonthInputs();
 }
 
-function monthKey() {
-  return `${curYear}-${String(curMonth+1).padStart(2,'0')}`;
-}
-
-// ── Render account input cards ─────────────────────────────────────────────
-function renderAccounts() {
-  const c = document.getElementById('accountsContainer');
-  c.innerHTML = '';
-  store.accounts.forEach((name, i) => {
-    const card = document.createElement('div');
-    card.className = 'account-card';
-    card.innerHTML = `
+function renderNewMonthInputs() {
+  const c = document.getElementById('newMonthInputs');
+  c.innerHTML = store.accounts.map((name, i) => `
+    <div class="new-acct-input">
       <div class="acct-label">${name}</div>
-      <input type="number" inputmode="decimal" placeholder="0.00"
-             id="acct_${i}" onInput="updateTotal()">
-    `;
-    c.appendChild(card);
-  });
-  updateTotal();
+      <input type="number" inputmode="decimal" placeholder="0.00" id="ni_${i}">
+    </div>
+  `).join('');
 }
 
-// ── Load saved data for current month ─────────────────────────────────────
-function loadCurrentMonthData() {
-  const data = store.history[monthKey()];
-  store.accounts.forEach((_, i) => {
-    const el = document.getElementById(`acct_${i}`);
-    if (el) el.value = (data && data.balances[i] != null) ? data.balances[i] : '';
-  });
-  updateTotal();
-}
+function saveNewMonth() {
+  const m = parseInt(document.getElementById('newMonthSel').value);
+  const y = parseInt(document.getElementById('newYearSel').value);
+  const key = `${y}-${String(m+1).padStart(2,'0')}`;
 
-// ── Total ──────────────────────────────────────────────────────────────────
-function updateTotal() {
-  let total = 0;
-  store.accounts.forEach((_, i) => {
-    const el = document.getElementById(`acct_${i}`);
-    if (el && el.value !== '') total += parseFloat(el.value) || 0;
-  });
-  document.getElementById('totalDisplay').textContent = fmt(total);
-}
+  if (store.history[key]) {
+    showToast('⚠️ Month already exists — edit it below');
+    document.getElementById('new-month-panel').classList.remove('open');
+    // scroll to that card
+    const el = document.getElementById(`card-${key}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    return;
+  }
 
-function fmt(n) {
-  return n.toLocaleString('en-US', { style:'currency', currency:'USD' });
-}
-
-// ── Save month ─────────────────────────────────────────────────────────────
-function saveMonth() {
   const balances = store.accounts.map((_, i) => {
-    const el = document.getElementById(`acct_${i}`);
+    const el = document.getElementById(`ni_${i}`);
     return el && el.value !== '' ? parseFloat(el.value) || 0 : null;
   });
-  store.history[monthKey()] = { balances };
-  saveStore();
-  renderHistory();
+
+  store.history[key] = { balances };
+  persist();
+  document.getElementById('new-month-panel').classList.remove('open');
+  renderCards();
   showToast('✓ Saved!');
 }
 
-// ── Clear inputs ───────────────────────────────────────────────────────────
-function clearInputs() {
-  store.accounts.forEach((_, i) => {
-    const el = document.getElementById(`acct_${i}`);
-    if (el) el.value = '';
-  });
-  updateTotal();
-}
-
-// ── History ────────────────────────────────────────────────────────────────
-function renderHistory() {
-  const list = document.getElementById('history-list');
+// ── Cards ──────────────────────────────────────────────────────────────────
+function renderCards() {
+  const c = document.getElementById('cardsContainer');
   const keys = Object.keys(store.history).sort().reverse();
+
   if (!keys.length) {
-    list.innerHTML = '<div style="color:#999;padding:10px">No entries yet</div>';
+    c.innerHTML = '<div class="empty-state">No entries yet.<br>Tap <strong>＋ New Month</strong> to begin.</div>';
     return;
   }
-  list.innerHTML = keys.map(k => {
-    const entry = store.history[k];
-    const total = entry.balances.reduce((s, v) => s + (v || 0), 0);
-    const [yr, mo] = k.split('-');
-    const monthName = new Date(yr, mo-1, 1).toLocaleString('default',{month:'long'});
-    const detail = store.accounts.map((name, i) =>
-      entry.balances[i] != null ? `${name}: ${fmt(entry.balances[i])}` : null
-    ).filter(Boolean).join(' · ');
-    return `<div class="history-entry">
-      <span class="h-total">${fmt(total)}</span>
-      <div class="h-month">${monthName} ${yr}</div>
-      <div class="h-detail">${detail}</div>
+
+  c.innerHTML = keys.map((key, idx) => buildCard(key, idx === 0)).join('');
+}
+
+function buildCard(key, isLatest) {
+  const entry  = store.history[key];
+  const total  = entryTotal(entry);
+  const latest = isLatest ? 'latest' : '';
+
+  const detailRows = store.accounts.map((name, i) => {
+    const val = entry.balances[i];
+    const display = val != null ? fmt(val) : '—';
+    const cls = val != null ? 'acct-val' : 'acct-val empty';
+    return `<div class="detail-row">
+      <span class="acct-name">${name}</span>
+      <span class="${cls}">${display}</span>
     </div>`;
   }).join('');
+
+  // Latest card starts expanded
+  const detailOpen = isLatest ? 'open' : '';
+  const chevronExp = isLatest ? 'expanded' : '';
+
+  return `
+    <div class="month-card ${latest}" id="card-${key}">
+      <div class="card-header ${chevronExp}" onclick="toggleCard(this)">
+        <div>
+          <div class="month-label">${monthLabel(key)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="month-total">${fmt(total)}</span>
+          <span class="chevron">▶</span>
+        </div>
+      </div>
+      <div class="card-detail ${detailOpen}" data-key="${key}">
+        <div class="detail-rows">${detailRows}</div>
+        <div class="card-actions">
+          <button class="btn-edit" onclick="startEdit('${key}')">✏️ Edit</button>
+          <button class="btn-delete" onclick="deleteMonth('${key}')">🗑</button>
+        </div>
+      </div>
+    </div>`;
 }
 
-function toggleHistory(btn) {
-  const list = document.getElementById('history-list');
-  const hidden = list.classList.toggle('hidden');
-  btn.textContent = hidden ? '📋 History ▼' : '📋 History ▲';
+function toggleCard(header) {
+  header.classList.toggle('expanded');
+  const detail = header.nextElementSibling;
+  detail.classList.toggle('open');
 }
 
-// ── Manage Accounts Modal ──────────────────────────────────────────────────
-function openModal() {
+// ── Edit ───────────────────────────────────────────────────────────────────
+function startEdit(key) {
+  const detail = document.querySelector(`.card-detail[data-key="${key}"]`);
+  const entry  = store.history[key];
+
+  const editRows = store.accounts.map((name, i) => {
+    const val = entry.balances[i];
+    return `<div class="edit-row">
+      <div class="acct-label">${name}</div>
+      <input type="number" inputmode="decimal" placeholder="0.00"
+             id="ei_${key}_${i}" value="${val != null ? val : ''}">
+    </div>`;
+  }).join('');
+
+  detail.querySelector('.detail-rows').innerHTML = editRows;
+  detail.querySelector('.card-actions').innerHTML = `
+    <button class="btn-save-edit" onclick="saveEdit('${key}')">💾 Save</button>
+    <button class="btn-cancel-edit" onclick="cancelEdit('${key}')">Cancel</button>
+    <button class="btn-delete" onclick="deleteMonth('${key}')">🗑</button>
+  `;
+}
+
+function saveEdit(key) {
+  const balances = store.accounts.map((_, i) => {
+    const el = document.getElementById(`ei_${key}_${i}`);
+    return el && el.value !== '' ? parseFloat(el.value) || 0 : null;
+  });
+  store.history[key] = { balances };
+  persist();
+
+  const keys   = Object.keys(store.history).sort().reverse();
+  const isLatest = keys[0] === key;
+  const card   = document.getElementById(`card-${key}`);
+  card.outerHTML = buildCard(key, isLatest);
+  showToast('✓ Saved!');
+}
+
+function cancelEdit(key) {
+  const keys     = Object.keys(store.history).sort().reverse();
+  const isLatest = keys[0] === key;
+  const card     = document.getElementById(`card-${key}`);
+  const newHTML  = buildCard(key, isLatest);
+  card.outerHTML = newHTML;
+  // re-open detail after cancel
+  const newCard   = document.getElementById(`card-${key}`);
+  const newHeader = newCard.querySelector('.card-header');
+  const newDetail = newCard.querySelector('.card-detail');
+  newHeader.classList.add('expanded');
+  newDetail.classList.add('open');
+}
+
+// ── Delete ─────────────────────────────────────────────────────────────────
+function deleteMonth(key) {
+  if (!confirm(`Delete ${monthLabel(key)}?`)) return;
+  delete store.history[key];
+  persist();
+  renderCards();
+  showToast('🗑 Deleted');
+}
+
+// ── Settings Modal ─────────────────────────────────────────────────────────
+function openSettings() {
   const list = document.getElementById('modalAcctList');
   list.innerHTML = store.accounts.map((name, i) => `
     <div class="modal-acct-row">
-      <input type="text" value="${name}" id="macct_${i}" onchange="updateAcctName(${i}, this.value)">
-      <button onclick="removeAcct(${i})">✕</button>
+      <input type="text" value="${name}" id="macct_${i}">
+      <button class="del-btn" onclick="removeAcct(${i})">✕</button>
     </div>
   `).join('');
   document.getElementById('modalBg').classList.add('open');
 }
 
-function updateAcctName(i, val) {
-  store.accounts[i] = val;
-}
-
 function removeAcct(i) {
+  syncModalNames();
   store.accounts.splice(i, 1);
-  saveStore();
-  openModal(); // re-render modal
-  renderAccounts();
-  loadCurrentMonthData();
+  persist();
+  openSettings();
 }
 
 function modalAddAccount() {
+  syncModalNames();
   store.accounts.push('New Account');
-  saveStore();
-  openModal();
-  renderAccounts();
-  loadCurrentMonthData();
+  persist();
+  openSettings();
 }
 
-function closeModal() {
-  // Sync any typed changes
+function syncModalNames() {
   store.accounts.forEach((_, i) => {
     const el = document.getElementById(`macct_${i}`);
     if (el) store.accounts[i] = el.value;
   });
-  saveStore();
-  renderAccounts();
-  loadCurrentMonthData();
+}
+
+function closeSettings() {
+  syncModalNames();
+  persist();
+  renderCards();
   document.getElementById('modalBg').classList.remove('open');
 }
 
 function maybeCloseModal(e) {
-  if (e.target === document.getElementById('modalBg')) closeModal();
+  if (e.target === document.getElementById('modalBg')) closeSettings();
 }
 
 // ── Backup ─────────────────────────────────────────────────────────────────
 function saveToFile() {
-  const blob = new Blob([JSON.stringify(store, null, 2)], {type:'application/json'});
+  const blob = new Blob([JSON.stringify(store, null, 2)], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
-  a.href = url;
-  a.download = `momsmartin_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.href     = url;
+  a.download = `momsmartin_${new Date().toISOString().slice(0,10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
-  showToast('📤 File saved!');
+  showToast('📤 Saved to file');
 }
 
 function loadFromFile() {
@@ -569,12 +791,9 @@ function handleFileLoad(e) {
   const reader = new FileReader();
   reader.onload = ev => {
     try {
-      const data = JSON.parse(ev.target.result);
-      store = data;
-      saveStore();
-      renderAccounts();
-      loadCurrentMonthData();
-      renderHistory();
+      store = JSON.parse(ev.target.result);
+      persist();
+      renderCards();
       showToast('📥 Loaded!');
     } catch(err) {
       showToast('❌ File error');
@@ -589,12 +808,11 @@ function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2000);
+  setTimeout(() => t.classList.remove('show'), 2200);
 }
 
-// ── Start ──────────────────────────────────────────────────────────────────
+// ── Go ─────────────────────────────────────────────────────────────────────
 init();
 </script>
 </body>
- </html>
- 
+</html>
